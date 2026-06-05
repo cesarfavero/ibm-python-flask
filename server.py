@@ -1,0 +1,69 @@
+"""Servidor Flask para o projeto Emotion Detector."""
+
+from flask import Flask, jsonify, render_template_string, request
+
+from EmotionDetection import emotion_detector
+
+app = Flask(__name__)
+
+HTML_PAGE = """
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8">
+    <title>Emotion Detector</title>
+  </head>
+  <body>
+    <h1>Detector de Emoções</h1>
+    <form id="emotion-form">
+      <label for="text">Texto:</label><br>
+      <textarea id="text" name="text" rows="4" cols="50"></textarea><br>
+      <button type="submit">Detectar Emoções</button>
+    </form>
+    <pre id="result"></pre>
+    <script>
+      const form = document.getElementById('emotion-form');
+      const result = document.getElementById('result');
+      form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const text = document.getElementById('text').value;
+        const response = await fetch('/detect', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text }),
+        });
+        const data = await response.json();
+        result.textContent = JSON.stringify(data, null, 2);
+      });
+    </script>
+  </body>
+</html>
+"""
+
+
+@app.route('/', methods=['GET'])
+def home() -> str:
+    """Renderiza a página inicial com o formulário de detecção."""
+    return render_template_string(HTML_PAGE)
+
+
+@app.route('/detect', methods=['POST'])
+def detect() -> tuple[dict, int]:
+    """Processa o texto enviado e retorna a análise de emoções."""
+    payload = request.get_json(silent=True)
+    if not payload or not isinstance(payload, dict):
+        return jsonify(error='Invalid JSON payload.'), 400
+
+    text = payload.get('text', '')
+    if not isinstance(text, str) or not text.strip():
+        return jsonify(error='Text input cannot be blank.'), 400
+
+    try:
+        result = emotion_detector(text)
+    except ValueError as error:
+        return jsonify(error=str(error)), 400
+    return jsonify(result), 200
+
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000, debug=False)
