@@ -15,8 +15,13 @@ class EmotionDetectionTests(unittest.TestCase):
         self.assertIsInstance(result, dict)
         self.assertEqual(result['input_text'], 'Eu estou muito feliz hoje')
         self.assertIn('emotions', result)
-        self.assertIn('primary_emotion', result)
+        self.assertIn('dominant_emotion', result)
         self.assertIn('confidence', result)
+        self.assertIsInstance(result['emotions'], dict)
+        self.assertSetEqual(
+            set(result['emotions'].keys()),
+            {'anger', 'disgust', 'fear', 'joy', 'sadness'},
+        )
         self.assertGreaterEqual(result['confidence'], 0.0)
 
     def test_emotion_detector_raises_error_for_blank_input(self):
